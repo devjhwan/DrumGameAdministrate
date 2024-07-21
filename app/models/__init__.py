@@ -1,5 +1,7 @@
 from .user_models import User
-from .product_models import Product
+from .song_models import Song
+from .player_settings_models import PlayerSettings
+from .game_result_models import GameResult
 from ..database import Base
 
-__all__ = ["User", "Product"]
+__all__ = ["User", "Song", "PlayerSettings", "GameResult"]
