@@ -72,7 +72,7 @@ def read_player_settings(user_id: int, db: Session = Depends(get_db)):
 	return db_player_settings
 
 @app.post("/game_result/", response_model=GameResultSchema)
-def create_player_settings(game_result: GameResultCreate, db: Session = Depends(get_db)):
+def create_game_result(game_result: GameResultCreate, db: Session = Depends(get_db)):
 	db_game_result = PlayerSettings(**game_result.model_dump())
 	db.add(db_game_result)
 	db.commit()
@@ -82,7 +82,7 @@ def create_player_settings(game_result: GameResultCreate, db: Session = Depends(
 
 
 @app.get("/db_game_result/{game_result_id}", response_model=GameResultSchema)
-def read_player_settings(game_result_id: int, db: Session = Depends(get_db)):
+def read_game_result(game_result_id: int, db: Session = Depends(get_db)):
 	db_game_result = db.query(GameResult).filter(GameResult.id == game_result_id).first()
 	if db_game_result is None:
 		raise HTTPException(status_code=404, detail="GameResult not found")
