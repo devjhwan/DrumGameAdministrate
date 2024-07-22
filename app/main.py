@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
+from typing import List, Optional
 from .database import engine, SessionLocal
 from .models import *
 from .schemas import UserCreate, User as UserSchema
@@ -41,20 +42,19 @@ def read_user(user_id: int, db: Session = Depends(get_db)):
 		raise HTTPException(status_code=404, detail="User not found")
 	return db_user
 
-@app.post("/song/", response_model=SongSchema)
-def create_song(song: SongCreate, db: Session = Depends(get_db)):
-	db_song = Song(name=song.song_name, list=song.list, level=song.level)
-	db.add(db_song)
-	db.commit()
-	db.refresh(db_song)
-	return db_song
+@app.delete("/users/{user_id}", response_model=UserSchema)
+def delete_user(user_id: int, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    db_player_settings = db.query(PlayerSettings).filter(PlayerSettings.user_id == user_id).first()
+    if db_player_settings:
+        db.delete(db_player_settings)
 
-@app.get("/song/{song_id}", response_model=SongSchema)
-def read_song(song_id: int, db: Session = Depends(get_db)):
-	db_song = db.query(Song).filter(Song.id == song_id).first()
-	if db_song is None:
-		raise HTTPException(status_code=404, detail="Song not found")
-	return db_song
+    db.delete(db_user)
+    db.commit()
+    return db_user
 
 @app.post("/player_settings/", response_model=PlayerSettingsSchema)
 def create_player_settings(player_settings: PlayerSettingsCreate, db: Session = Depends(get_db)):
@@ -71,7 +71,40 @@ def read_player_settings(user_id: int, db: Session = Depends(get_db)):
 		raise HTTPException(status_code=404, detail="PlayerSettings not found")
 	return db_player_settings
 
-@app.post("/game_result/", response_model=GameResultSchema)
+@app.post("/songs/", response_model=SongSchema)
+def create_song(song: SongCreate, db: Session = Depends(get_db)):
+	db_song = Song(name=song.song_name, list=song.list, level=song.level)
+	db.add(db_song)
+	db.commit()
+	db.refresh(db_song)
+	return db_song
+
+@app.get("/songs/{song_id}", response_model=SongSchema)
+def read_song(song_id: int, db: Session = Depends(get_db)):
+	db_song = db.query(Song).filter(Song.id == song_id).first()
+	if db_song is None:
+		raise HTTPException(status_code=404, detail="Song not found")
+	return db_song
+
+@app.get("/songs/", response_model=List[SongSchema])
+def read_songs(list: Optional[str] = None, db: Session = Depends(get_db)):
+    if list:
+        db_songs = db.query(Song).filter(Song.list == list).all()
+    else:
+        db_songs = db.query(Song).all()
+    
+    return db_songs
+
+@app.delete("/songs/{song_id}", response_model=SongSchema)
+def delete_song(song_id: int, db: Session = Depends(get_db)):
+    db_song = db.query(Song).filter(Song.id == song_id).first()
+    if db_song is None:
+        raise HTTPException(status_code=404, detail="Song not found")
+    db.delete(db_song)
+    db.commit()
+    return db_song
+
+@app.post("/game_results/", response_model=GameResultSchema)
 def create_game_result(game_result: GameResultCreate, db: Session = Depends(get_db)):
 	db_game_result = PlayerSettings(**game_result.model_dump())
 	db.add(db_game_result)
@@ -79,11 +112,23 @@ def create_game_result(game_result: GameResultCreate, db: Session = Depends(get_
 	db.refresh(db_game_result)
 	return db_game_result
 
-
-
-@app.get("/db_game_result/{game_result_id}", response_model=GameResultSchema)
+@app.get("/game_results/{game_result_id}", response_model=GameResultSchema)
 def read_game_result(game_result_id: int, db: Session = Depends(get_db)):
 	db_game_result = db.query(GameResult).filter(GameResult.id == game_result_id).first()
 	if db_game_result is None:
 		raise HTTPException(status_code=404, detail="GameResult not found")
 	return db_game_result
+
+@app.get("/game_results/", response_model=List[GameResultSchema])
+def read_game_results(db: Session = Depends(get_db)):
+    db_game_results = db.query(GameResult).all()
+    return db_game_results
+
+@app.delete("/game_result/{game_result_id}", response_model=GameResultSchema)
+def delete_game_result(game_result_id: int, db: Session = Depends(get_db)):
+    db_game_result = db.query(GameResult).filter(GameResult.id == game_result_id).first()
+    if db_game_result is None:
+        raise HTTPException(status_code=404, detail="GameResult not found")
+    db.delete(db_game_result)
+    db.commit()
+    return db_game_result
